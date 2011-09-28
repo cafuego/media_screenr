@@ -1,0 +1,6 @@
+
+name = Media: Screenr
+description = Embedded Video Field provider file for screenr.com.
+core = 6.x
+dependencies[] = emvideo
+package = Media

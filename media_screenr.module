@@ -1,0 +1,11 @@
+<?php
+/**
+ *  @file
+ *  Embedded Video Field provider file for screenr.com.
+ */
+
+function media_screenr_emfield_providers($module, $provider = NULL) {
+  if ($module == 'emvideo') {
+    return drupal_system_listing("$provider\.inc$", drupal_get_path('module', 'media_screenr') ."/providers", 'name', 0);
+  }
+}
