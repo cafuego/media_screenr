@@ -27,18 +27,11 @@ define('EMVIDEO_SCREENR_DATA_VERSION', 1);
  *      These will be rendered in a table, with the columns being 'Feature', 'Supported', 'Notes'.
  */
 function emvideo_screenr_info() {
-  $features = array(
-    array(t('Autoplay'), t('Yes'), ''),
-    array(t('RSS Attachment'), t('Yes'), ''),
-    array(t('Thumbnails'), t('Yes'), t('')),
-    array(t('Full screen mode'), t('Yes'), t('You may customize the player to enable or disable full screen playback. Full screen mode is enabled by default.')),
-  );
   return array(
     'provider' => 'screenr',
     'name' => t('Screenr'),
     'url' => EMVIDEO_SCREENR_MAIN_URL,
     'settings_description' => t('These settings specifically affect videos displayed from !screenr.', array('!screenr' => l(t('Screenr.com'), EMVIDEO_SCREENR_MAIN_URL))),
-    'supported_features' => $features,
   );
 }
 
@@ -58,12 +51,10 @@ function emvideo_screenr_settings() {
  */
 function emvideo_screenr_data($field, $item) {
   $xml = emfield_request_xml('screenr', 'http://www.screenr.com/api/oembed.xml?url=http%3A//www.screenr.com/'. $item['value'], array(), TRUE, FALSE, $item['value']);
-dpm($xml);
 
   // We have to extract the embed code from the xml.
   $html = $xml['OEMBED']['HTML'][0];
-dpm($html);
-  preg_match('@screenr.com/([^"]+)@i', $xml['OEMBED']['HTML'][0], $matches);
+  preg_match('@screenr.com/embed/([^"]+)@i', $xml['OEMBED']['HTML'][0], $matches);
 
   $data = array();
 
@@ -74,14 +65,9 @@ dpm($html);
   $data['thumbnail'] = $xml['OEMBED']['THUMBNAIL_URL'][0];
   $data['embed'] = $matches[1];
 
-  // Fetch the metadata via a SOAP call. emfield_request_xml() is all
-  // very well, but doesn't get all the data I want.
-  $raw = media_screenr_request_metadata($data['embed']);
-  $data['raw'] = $raw->SearchMediaResult[0];
-
-  if ($data['raw'] !== FALSE) {
-    $data['duration'] = intval($data['raw']->MediaDuration);
-  }
+  // Video size.
+  $data['width'] = $xml['OEMBED']['width'][0];
+  $data['height'] = $xml['OEMBED']['height'][0];
 
   return $data;
 }
@@ -103,8 +89,8 @@ function emvideo_screenr_rss($item, $teaser = NULL) {
  *   otherwise, the calling function will handle testing the embed code against each regex string in the returned array.
  */
 function emvideo_screenr_extract($embed = '') {
-  // http://screenr.com/KqUs
   return array(
+    '@\.screenr\.com/embed/([^"]+)@i',
     '@\.screenr\.com/([^\?]+)@i',
   );
 }
@@ -135,19 +121,12 @@ function emvideo_screenr_embedded_link($video_code) {
 }
 
 /**
- * The embedded flash displaying the screenr video.
+ * The embedded iframe displaying the screenr video.
  */
 function theme_emvideo_screenr_flash($item, $width, $height, $autoplay) {
   $output = '';
   if ($item['embed']) {
-    $output = '<object width="'. $width .'" height="'. $height .'">';
-    $output .= '<param name="movie" value="http://www.screenr.com/v/'. $item['data']['embed'] .'">';
-    $output .= '<param name="wmode" value="transparent" />';
-    $output .= '<param name="allowFullScreen" value="'. $fullscreen .'" />';
-    $output .= '<param name="api" value="true" />';
-    $output .= '<param name="allowscriptaccess" value="always" />';
-    $output .= '<embed src="http://www.screenr.com/v/'. $item['data']['embed'] .'" type="application/x-shockwave-flash" allowFullScreen="'. $fullscreen .'"  allowscriptaccess="always" width="'. $width .'" height="'. $height .'" api="true"></embed>';
-    $output .= '</object>';
+    $output = '<iframe src="http://www.screenr.com/embed/'. $item['data']['embed'] .'" width="'. $width .'" height="'. $height .'" frameborder="0"></iframe>';
   }
   return $output;
 }
